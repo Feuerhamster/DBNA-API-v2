@@ -27,6 +27,7 @@ class dbnaAPI{
         this.tempData = {
             pulse: {},
             contacts: {},
+            lastNotificationDate: "",
             sessionCookie: ""
         };
 
@@ -515,6 +516,12 @@ class dbnaAPI{
 
         });
 
+        this.chatClient.on('notify', (notification) => {
+
+            this.eventEmitter.emit('notify', notification);
+
+        });
+
     }
 
     chats(){
@@ -606,6 +613,107 @@ class dbnaAPI{
                 this.chatClient.send('unarchive', { id: id });
             }
         }
+
+    }
+
+    /*
+    * Notification Management
+    */
+
+    notifications(){
+
+        return {
+
+            getCurrent: ()=>{
+
+                return new Promise((resolve, reject)=>{
+
+                    this.request(this.endpoint + 'notifications', {
+                        method: "GET",
+                        json: true,
+                        jar: true
+                    }, (err, res, body)=>{
+
+                        if(body.error){
+                            reject(body.error);
+                        }else{
+
+                            this.tempData.lastNotificationDate = body.notifications[body.notifications.length-1].date;
+
+                            resolve(body);
+
+                        }
+
+                    });
+
+                });
+
+            },
+            getNextPage: ()=>{
+
+                return new Promise((resolve, reject)=>{
+
+                    this.request(this.endpoint + 'notifications', {
+                        method: "GET",
+                        json: true,
+                        jar: true,
+                        qs: { before: this.tempData.lastNotificationDate }
+                    }, (err, res, body)=>{
+
+                        if(body.error){
+                            reject(body.error);
+                        }else{
+
+                            if(body.notifications.length > 0){
+                                this.tempData.lastNotificationDate = body.notifications[body.notifications.length-1].date;
+                            }
+
+                            resolve(body);
+                        }
+
+                    });
+
+                });
+
+            },
+
+        }
+
+    }
+
+    notification(id) {
+
+        return {
+
+            read: () => {
+
+                this.request(this.endpoint + 'notifications/' + id, {
+                    method: "POST",
+                    json: true,
+                    jar: true,
+                    form: {
+                        read: 1
+                    }
+                }, (err, res, body) => {
+                });
+
+            },
+            delete: () => {
+
+                this.request(this.endpoint + 'notifications/' + id, {
+                    method: "DELETE",
+                    json: true,
+                    jar: true
+                }, (err, res, body) => {
+                });
+
+            }
+
+        }
+
+    }
+
+    requests(){
 
     }
 
