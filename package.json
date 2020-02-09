@@ -1,0 +1,16 @@
+{
+  "name": "dbna-api-v2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/main.js",
+  "dependencies": {
+    "request": "^2.88.0",
+    "ws": "^7.2.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
