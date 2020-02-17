@@ -199,3 +199,5 @@ fabric.properties
 # End of https://www.gitignore.io/api/node,webstorm
 /test.js
 /wstest.js
+
+/examples/

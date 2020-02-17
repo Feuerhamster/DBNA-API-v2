@@ -82,19 +82,23 @@ class dbnaAPI{
 
     }
 
-    logout(callback){
+    logout(){
 
-        this.request(this.endpoint + 'user/logout', {
-            method: "GET",
-            json: true,
-            jar: true
-        }, (err, res, body)=>{
+        return new Promise((resolve, reject)=> {
+            
+            this.request(this.endpoint + 'user/logout', {
+                method: "GET",
+                json: true,
+                jar: true
+            }, (err, res, body) => {
 
-            if(body.error){
-                callback(body.error, null);
-            }else{
-                callback(null, body);
-            }
+                if (body.error) {
+                    reject(body.error);
+                } else {
+                    resolve(body);
+                }
+
+            });
 
         });
 
@@ -150,7 +154,8 @@ class dbnaAPI{
                     jar: true
                 }, (err, res, body)=>{});
 
-            }
+            },
+            texts: () => this.texts(id)
         };
 
     }
@@ -290,6 +295,59 @@ class dbnaAPI{
             },
             heart: ()=> this.heart("picture", id),
             comments: (commentId = null) => this.comments("picture", id, commentId)
+        }
+
+    }
+
+    texts(userId = null){
+
+        return {
+            getTexts: ()=>{
+
+                return new Promise((resolve, reject)=>{
+
+                    this.request(this.endpoint + 'profile/' + userId + '/text', {
+                        method: "GET",
+                        json: true,
+                        jar: true,
+                        qs: { gallery: 1 }
+                    }, (err, res, body)=>{
+
+                        if(body.error){
+                            reject(body.error);
+                        }else{
+                            resolve(body);
+                        }
+
+                    });
+
+                });
+
+            },
+            update: (type, text)=>{
+
+                return new Promise((resolve, reject)=>{
+
+                    this.request(this.endpoint + 'manage/text/' + type, {
+                        method: "POST",
+                        form: {
+                            text: text
+                        },
+                        json: true,
+                        jar: true
+                    }, (err, res, body)=>{
+
+                        if(body.error){
+                            reject(body.error);
+                        }else{
+                            resolve(body);
+                        }
+
+                    });
+
+                });
+
+            }
         }
 
     }

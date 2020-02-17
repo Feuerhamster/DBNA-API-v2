@@ -87,7 +87,7 @@ module.exports = function(wsurl, options){
             let newMessage = socketIOParser.stringifyMessage({ id : ack === false ? '' : idCount, event: event, data: data });
 
             idCount++;
-            console.log(newMessage);
+
             ws.send(newMessage);
         },
         ws: ws
