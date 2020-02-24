@@ -12,7 +12,8 @@ class dbnaAPI{
     constructor() {
 
         this.socket = require('./socket.js');
-        this.request = require('request');
+        this.axios = require('axios');
+        this.qs = require('querystring');
 
         const events = require('events');
         this.eventEmitter = new events.EventEmitter();
@@ -58,24 +59,22 @@ class dbnaAPI{
 
         return new Promise((resolve, reject)=>{
 
-            this.request(this.endpoint + 'user/login', {
-                method: "POST",
-                form: {
+            this.axios({
+                method: 'post',
+                url: this.endpoint + 'user/login',
+                data: this.qs.stringify({
                     username: username,
                     password: password,
                     auto: auto
-                },
-                json: true,
-                jar: true
-            }, (err, res, body)=>{
+                }),
+                withCredentials: true
+            }).then((res) => {
 
-                if(body.error){
-                    reject(body.error);
-                }else{
-                    this.tempData.sessionCookie = res.headers["set-cookie"].find(x => x.startsWith("cdsess"));
-                    resolve(body);
-                }
+                this.tempData.sessionCookie = res.headers["set-cookie"].find(x => x.startsWith("cdsess"));
+                resolve(res.data);
 
+            }).catch((res) => {
+                reject(res.response);
             });
 
         });
@@ -85,19 +84,17 @@ class dbnaAPI{
     logout(){
 
         return new Promise((resolve, reject)=> {
-            
-            this.request(this.endpoint + 'user/logout', {
-                method: "GET",
-                json: true,
-                jar: true
-            }, (err, res, body) => {
 
-                if (body.error) {
-                    reject(body.error);
-                } else {
-                    resolve(body);
-                }
+            this.axios({
+                url: this.endpoint + 'user/logout',
+                headers: { 'Cookie': this.tempData.sessionCookie },
+                withCredentials: true
+            }).then((res) => {
 
+                resolve(res.data);
+
+            }).catch((res) => {
+                reject(res.response);
             });
 
         });
@@ -115,19 +112,15 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'profile/' + id, {
-                        method: "GET",
-                        json: true,
-                        jar: true,
-                        qs: { gallery: 1 }
-                    }, (err, res, body)=>{
-
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
-
+                    this.axios({
+                        url: this.endpoint + 'profile/' + id,
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true,
+                        params: { gallery: 1 }
+                    }).then((res) => {
+                        resolve(res.data);
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -139,20 +132,22 @@ class dbnaAPI{
             contacts: (all = false) => this.contacts(id, all),
             sendCrush: (crush) => {
 
-                this.request(this.endpoint + 'profile/' + id + '/crush/' + crush, {
-                    method: "PUT",
-                    json: true,
-                    jar: true
-                }, (err, res, body)=>{});
+                this.axios({
+                    method: 'put',
+                    url: this.endpoint + 'profile/' + id + '/crush/' + crush,
+                    headers: { 'Cookie': this.tempData.sessionCookie },
+                    withCredentials: true
+                });
 
             },
             revokeCrush: () => {
 
-                this.request(this.endpoint + 'profile/' + id + '/crush', {
-                    method: "DELETE",
-                    json: true,
-                    jar: true
-                }, (err, res, body)=>{});
+                this.axios({
+                    method: 'delete',
+                    url: this.endpoint + 'profile/' + id + '/crush',
+                    headers: { 'Cookie': this.tempData.sessionCookie },
+                    withCredentials: true
+                });
 
             },
             texts: () => this.texts(id)
@@ -167,23 +162,19 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'profile/' + userId + '/friends', {
-                        method: "GET",
-                        json: true,
-                        jar: true,
-                        qs: { type: all ? 'all' : 'friends' }
-                    }, (err, res, body)=>{
+                    this.axios({
+                        url: this.endpoint + 'profile/' + userId + '/friends',
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true,
+                        params: { type: all ? 'all' : 'friends' }
+                    }).then((res) => {
 
-                        if(body.error){
-                            reject(body.error);
-                        }else{
+                        this.tempData.contacts[userId] = 0;
 
-                            this.tempData.contacts[userId] = 0;
+                        resolve(res.data);
 
-                            resolve(body);
-
-                        }
-
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -195,19 +186,19 @@ class dbnaAPI{
 
                     this.tempData.contacts[userId]++;
 
-                    this.request(this.endpoint + 'profile/' + userId + '/friends', {
-                        method: "GET",
-                        json: true,
-                        jar: true,
-                        qs: { page: this.tempData.contacts[userId], type: all ? 'all' : 'friends' }
-                    }, (err, res, body)=>{
+                    this.axios({
+                        url: this.endpoint + 'profile/' + userId + '/friends',
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true,
+                        params: { page: this.tempData.contacts[userId], type: all ? 'all' : 'friends' }
+                    }).then((res) => {
 
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
+                        this.tempData.contacts[userId] = 0;
 
+                        resolve(res.data);
+
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -225,19 +216,15 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'profile/' + userId + '/picture', {
-                        method: "GET",
-                        json: true,
-                        jar: true,
-                        qs: {galleries: 1}
-                    }, (err, res, body)=>{
-
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
-
+                    this.axios({
+                        url: this.endpoint + 'profile/' + userId + '/picture',
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true,
+                        params: { galleries: 1 }
+                    }).then((res) => {
+                        resolve(res.data);
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -247,18 +234,14 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'profile/' + userId + '/gallery/' + galleryId, {
-                        method: "GET",
-                        json: true,
-                        jar: true
-                    }, (err, res, body)=>{
-
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
-
+                    this.axios({
+                        url: this.endpoint + 'profile/' + userId + '/gallery/' + galleryId,
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true
+                    }).then((res) => {
+                        resolve(res.data);
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -276,18 +259,14 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'profile/picture/' + id, {
-                        method: "GET",
-                        json: true,
-                        jar: true,
-                    }, (err, res, body)=>{
-
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
-
+                    this.axios({
+                        url: this.endpoint + 'profile/picture/' + id,
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true
+                    }).then((res) => {
+                        resolve(res.data);
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -306,19 +285,14 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'profile/' + userId + '/text', {
-                        method: "GET",
-                        json: true,
-                        jar: true,
-                        qs: { gallery: 1 }
-                    }, (err, res, body)=>{
-
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
-
+                    this.axios({
+                        url: this.endpoint + 'profile/' + userId + '/text',
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true
+                    }).then((res) => {
+                        resolve(res.data);
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -328,21 +302,20 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'manage/text/' + type, {
-                        method: "POST",
-                        form: {
+                    this.axios({
+                        method: 'post',
+                        url: this.endpoint + 'manage/text/' + type,
+                        data: this.qs.stringify({
                             text: text
-                        },
-                        json: true,
-                        jar: true
-                    }, (err, res, body)=>{
+                        }),
+                        withCredentials: true
+                    }).then((res) => {
 
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
+                        this.tempData.sessionCookie = res.headers["set-cookie"].find(x => x.startsWith("cdsess"));
+                        resolve(res.data);
 
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -363,25 +336,21 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'pulse/' + id, {
-                        method: "GET",
-                        json: true,
-                        jar: true
-                    }, (err, res, body)=>{
+                    this.axios({
+                        url: this.endpoint + 'pulse/' + id,
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true
+                    }).then((res) => {
 
-                        if(body.error){
-                            reject(body.error);
-                        }else{
+                        this.tempData.pulse[id] = {
+                            lastEntryDate: res.data.stories[res.data.stories.length-1].date,
+                            lastPage: 0
+                        };
 
-                            this.tempData.pulse[id] = {
-                                lastEntryDate: body.stories[body.stories.length-1].date,
-                                lastPage: 0
-                            };
+                        resolve(res.data);
 
-                            resolve(body);
-
-                        }
-
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -393,25 +362,22 @@ class dbnaAPI{
 
                     this.tempData.pulse[id].lastPage ++;
 
-                    this.request(this.endpoint + 'pulse/all', {
-                        method: "GET",
-                        json: true,
-                        jar: true,
-                        qs: { before: this.tempData.pulse[id].lastEntryDate, ph: this.tempData.pulse[id].lastPage }
-                    }, (err, res, body)=>{
+                    this.axios({
+                        url: this.endpoint + 'pulse/' + id,
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true,
+                        params: { before: this.tempData.pulse[id].lastEntryDate, ph: this.tempData.pulse[id].lastPage }
+                    }).then((res) => {
 
-                        if(body.error){
-                            reject(body.error);
-                        }else{
+                        this.tempData.pulse[id] = {
+                            lastEntryDate: res.data.stories[res.data.stories.length-1].date,
+                            lastPage: this.tempData.pulse[id].lastPage
+                        };
 
-                            this.tempData.pulse[id] = {
-                                lastEntryDate: body.stories[body.stories.length-1].date,
-                                lastPage: this.tempData.pulse[id].lastPage
-                            };
+                        resolve(res.data);
 
-                            resolve(body);
-                        }
-
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -428,18 +394,14 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'story/' + id, {
-                        method: "GET",
-                        json: true,
-                        jar: true
-                    }, (err, res, body)=>{
-
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
-
+                    this.axios({
+                        url: this.endpoint + 'story/' + id,
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true
+                    }).then((res) => {
+                        resolve(res.data);
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -457,18 +419,14 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(`${this.endpoint}comments/${target}/${id}`, {
-                        method: "GET",
-                        json: true,
-                        jar: true,
-                    }, (err, res, body)=>{
-
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
-
+                    this.axios({
+                        url: `${this.endpoint}comments/${target}/${id}`,
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true
+                    }).then((res) => {
+                        resolve(res.data);
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -478,21 +436,17 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(`${this.endpoint}comments/${target}/${id}`, {
-                        method: "POST",
-                        form: {
+                    this.axios({
+                        method: 'post',
+                        url: `${this.endpoint}comments/${target}/${id}`,
+                        data: this.qs.stringify({
                             body: text
-                        },
-                        json: true,
-                        jar: true
-                    }, (err, res, body)=>{
-
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
-
+                        }),
+                        withCredentials: true
+                    }).then((res) => {
+                        resolve(res.data);
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -502,18 +456,14 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(`${this.endpoint}comments/${target}/${commentId}`, {
-                        method: "DELETE",
-                        json: true,
-                        jar: true
-                    }, (err, res, body)=>{
-
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-                            resolve(body);
-                        }
-
+                    this.axios({
+                        method: 'delete',
+                        url: `${this.endpoint}${target}/${commentId}`,
+                        withCredentials: true
+                    }).then((res) => {
+                        resolve(res.data);
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -527,18 +477,15 @@ class dbnaAPI{
 
         return new Promise((resolve, reject)=>{
 
-            this.request(`${this.endpoint}heart/${target}/${id}`, {
-                method: "GET",
-                json: true,
-                jar: true
-            }, (err, res, body)=>{
-
-                if(body.error){
-                    reject(body.error);
-                }else{
-                    resolve(body);
-                }
-
+            this.axios({
+                method: 'post',
+                url: `${this.endpoint}heart/${target}/${id}`,
+                headers: { 'Cookie': this.tempData.sessionCookie },
+                withCredentials: true
+            }).then((res) => {
+                resolve(res.data);
+            }).catch((res) => {
+                reject(res.response);
             });
 
         });
@@ -686,22 +633,20 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'notifications', {
-                        method: "GET",
-                        json: true,
-                        jar: true
-                    }, (err, res, body)=>{
+                    this.axios({
+                        url: this.endpoint + 'notifications',
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true
+                    }).then((res) => {
 
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-
-                            this.tempData.lastNotificationDate = body.notifications[body.notifications.length-1].date;
-
-                            resolve(body);
-
+                        if(res.data.notifications.length > 0){
+                            this.tempData.lastNotificationDate = res.data.notifications[res.data.notifications.length-1].date;
                         }
 
+                        resolve(res.data);
+
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -711,24 +656,20 @@ class dbnaAPI{
 
                 return new Promise((resolve, reject)=>{
 
-                    this.request(this.endpoint + 'notifications', {
-                        method: "GET",
-                        json: true,
-                        jar: true,
-                        qs: { before: this.tempData.lastNotificationDate }
-                    }, (err, res, body)=>{
+                    this.axios({
+                        url: this.endpoint + 'notifications',
+                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        withCredentials: true,
+                        params: { before: this.tempData.lastNotificationDate }
+                    }).then((res) => {
 
-                        if(body.error){
-                            reject(body.error);
-                        }else{
-
-                            if(body.notifications.length > 0){
-                                this.tempData.lastNotificationDate = body.notifications[body.notifications.length-1].date;
-                            }
-
-                            resolve(body);
+                        if(res.data.notifications.length > 0){
+                            this.tempData.lastNotificationDate = res.data.notifications[res.data.notifications.length-1].date;
                         }
+                        resolve(res.data);
 
+                    }).catch((res) => {
+                        reject(res.response);
                     });
 
                 });
@@ -745,24 +686,24 @@ class dbnaAPI{
 
             read: () => {
 
-                this.request(this.endpoint + 'notifications/' + id, {
-                    method: "POST",
-                    json: true,
-                    jar: true,
-                    form: {
+                this.axios({
+                    method: 'post',
+                    url: this.endpoint + 'notifications/' + id,
+                    headers: { 'Cookie': this.tempData.sessionCookie },
+                    withCredentials: true,
+                    data: this.qs.stringify({
                         read: 1
-                    }
-                }, (err, res, body) => {
+                    })
                 });
 
             },
             delete: () => {
 
-                this.request(this.endpoint + 'notifications/' + id, {
-                    method: "DELETE",
-                    json: true,
-                    jar: true
-                }, (err, res, body) => {
+                this.axios({
+                    method: 'delete',
+                    url: this.endpoint + 'notifications/' + id,
+                    headers: { 'Cookie': this.tempData.sessionCookie },
+                    withCredentials: true
                 });
 
             }
