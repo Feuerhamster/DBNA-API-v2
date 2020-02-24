@@ -128,7 +128,7 @@ class dbnaAPI{
             },
             pulse: () => this.pulse(id),
             chat: () => this.chat(id),
-            pictures: (galleryId = 'default') => this.pictures(id),
+            pictures: () => this.pictures(id),
             contacts: (all = false) => this.contacts(id, all),
             sendCrush: (crush) => {
 
@@ -230,7 +230,7 @@ class dbnaAPI{
                 });
 
             },
-            getGallery: (galleryId = 'default')=>{
+            getGallery: (galleryId)=>{
 
                 return new Promise((resolve, reject)=>{
 
