@@ -305,6 +305,7 @@ class dbnaAPI{
                     this.axios({
                         method: 'post',
                         url: this.endpoint + 'manage/text/' + type,
+                        headers: { 'Cookie': this.tempData.sessionCookie },
                         data: this.qs.stringify({
                             text: text
                         }),
@@ -439,6 +440,7 @@ class dbnaAPI{
                     this.axios({
                         method: 'post',
                         url: `${this.endpoint}comments/${target}/${id}`,
+                        headers: { 'Cookie': this.tempData.sessionCookie },
                         data: this.qs.stringify({
                             body: text
                         }),
@@ -459,6 +461,7 @@ class dbnaAPI{
                     this.axios({
                         method: 'delete',
                         url: `${this.endpoint}${target}/${commentId}`,
+                        headers: { 'Cookie': this.tempData.sessionCookie },
                         withCredentials: true
                     }).then((res) => {
                         resolve(res.data);
