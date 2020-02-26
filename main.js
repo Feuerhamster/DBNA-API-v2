@@ -312,7 +312,6 @@ class dbnaAPI{
                         withCredentials: true
                     }).then((res) => {
 
-                        this.tempData.sessionCookie = res.headers["set-cookie"].find(x => x.startsWith("cdsess"));
                         resolve(res.data);
 
                     }).catch((res) => {
