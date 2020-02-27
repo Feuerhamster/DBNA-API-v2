@@ -5,13 +5,16 @@ const socketIOParser = require("./socket.io-parser.js");
 //set configuration variables
 let idCount = 0;
 let pingInterval = 25000;
+let reconnectTimeout = 5000;
+let reconnectAttemps = 5;
+let reconnections = 0;
 
 const ackQueue = {};
 const events = {};
 
 let ws = null;
 
-module.exports = function(wsurl, options){
+function socket(wsurl, options){
 
     ws = new WebSocket(wsurl, [], options);
 
@@ -33,14 +36,21 @@ module.exports = function(wsurl, options){
         if(msg.packetType == "open"){
 
             pingInterval = msg.data.pingInterval;
+            // set reconnections to 0 on successful connection
+            reconnections = 0;
+
             setTimeout(()=>{
-                ws.send("2");
+                if(ws.readyState == 1){
+                    ws.send("2");
+                }
             }, pingInterval);
 
-        }else if(msg.packetType == "pong"){
+        }else if(msg.packetType === "pong"){
 
             setTimeout(()=>{
-                ws.send("2");
+                if(ws.readyState === 1) {
+                    ws.send("2");
+                }
             }, pingInterval);
 
         }else if(msg.packetType == "message"){
@@ -66,13 +76,33 @@ module.exports = function(wsurl, options){
 
         }
     });
-
+    // run error event on websocket error
     ws.on("error", (err)=>{
         if(typeof events["error"] == "function"){
             events["error"](err);
         }else{
             throw err;
         }
+    });
+
+    ws.on("close", ()=>{
+        // run close event
+        if(typeof events["closed"] == "function"){
+            events["closed"]();
+        }
+
+        // reconnect
+        setTimeout(()=>{
+            if(reconnections <= reconnectAttemps){
+                // run reconnect event
+                if(typeof events["reconnect"] == "function"){
+                    events["reconnect"](reconnections);
+                }
+                reconnections++;
+                // restart this function to reconnect
+                socket(wsurl, options);
+            }
+        }, reconnectTimeout);
     });
 
     return {
@@ -93,4 +123,6 @@ module.exports = function(wsurl, options){
         ws: ws
     }
 
-};
+}
+
+module.exports = socket;

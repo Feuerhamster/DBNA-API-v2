@@ -510,6 +510,14 @@ class dbnaAPI{
             this.eventEmitter.emit('error', error);
         });
 
+        this.chatClient.on('closed', () => {
+            this.eventEmitter.emit('closed');
+        });
+
+        this.chatClient.on('reconnect', (attemps) => {
+            this.eventEmitter.emit('reconnect', attemps);
+        });
+
         //triggers when the user gets a chat message
         this.chatClient.on('message', (msg)=>{
 
