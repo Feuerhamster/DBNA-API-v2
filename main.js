@@ -15,6 +15,12 @@ class dbnaAPI{
         this.axios = require('axios');
         this.qs = require('querystring');
 
+        const axiosCookieJarSupport = require('axios-cookiejar-support');
+        const tough = require('tough-cookie');
+
+        axiosCookieJarSupport.default(this.axios);
+        this.cookieJar = new tough.CookieJar();
+
         const events = require('events');
         this.eventEmitter = new events.EventEmitter();
 
@@ -67,7 +73,8 @@ class dbnaAPI{
                     password: password,
                     auto: auto
                 }),
-                withCredentials: true
+                withCredentials: true,
+                jar: this.cookieJar
             }).then((res) => {
 
                 this.tempData.sessionCookie = res.headers["set-cookie"].find(x => x.startsWith("cdsess"));
@@ -87,7 +94,7 @@ class dbnaAPI{
 
             this.axios({
                 url: this.endpoint + 'user/logout',
-                headers: { 'Cookie': this.tempData.sessionCookie },
+                jar: this.cookieJar,
                 withCredentials: true
             }).then((res) => {
 
@@ -114,7 +121,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'profile/' + id,
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true,
                         params: { gallery: 1 }
                     }).then((res) => {
@@ -135,7 +142,7 @@ class dbnaAPI{
                 this.axios({
                     method: 'put',
                     url: this.endpoint + 'profile/' + id + '/crush/' + crush,
-                    headers: { 'Cookie': this.tempData.sessionCookie },
+                    jar: this.cookieJar,
                     withCredentials: true
                 });
 
@@ -145,7 +152,7 @@ class dbnaAPI{
                 this.axios({
                     method: 'delete',
                     url: this.endpoint + 'profile/' + id + '/crush',
-                    headers: { 'Cookie': this.tempData.sessionCookie },
+                    jar: this.cookieJar,
                     withCredentials: true
                 });
 
@@ -164,7 +171,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'profile/' + userId + '/friends',
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true,
                         params: { type: all ? 'all' : 'friends' }
                     }).then((res) => {
@@ -188,7 +195,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'profile/' + userId + '/friends',
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true,
                         params: { page: this.tempData.contacts[userId], type: all ? 'all' : 'friends' }
                     }).then((res) => {
@@ -218,7 +225,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'profile/' + userId + '/picture',
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true,
                         params: { galleries: 1 }
                     }).then((res) => {
@@ -236,7 +243,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'profile/' + userId + '/gallery/' + galleryId,
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true
                     }).then((res) => {
                         resolve(res.data);
@@ -261,7 +268,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'profile/picture/' + id,
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true
                     }).then((res) => {
                         resolve(res.data);
@@ -287,7 +294,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'profile/' + userId + '/text',
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true
                     }).then((res) => {
                         resolve(res.data);
@@ -305,7 +312,7 @@ class dbnaAPI{
                     this.axios({
                         method: 'post',
                         url: this.endpoint + 'manage/text/' + type,
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         data: this.qs.stringify({
                             text: text
                         }),
@@ -338,7 +345,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'pulse/' + id,
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true
                     }).then((res) => {
 
@@ -364,7 +371,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'pulse/' + id,
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true,
                         params: { before: this.tempData.pulse[id].lastEntryDate, ph: this.tempData.pulse[id].lastPage }
                     }).then((res) => {
@@ -383,6 +390,28 @@ class dbnaAPI{
                 });
 
             },
+            post: (text, asGroup = '')=>{
+
+                return new Promise((resolve, reject)=>{
+
+                    this.axios({
+                        method: 'post',
+                        url: `${this.endpoint}pulse/${id}`,
+                        jar: this.cookieJar,
+                        data: this.qs.stringify({
+                            body: text,
+                            asGroup: asGroup
+                        }),
+                        withCredentials: true
+                    }).then((res) => {
+                        resolve(res.data);
+                    }).catch((res) => {
+                        reject(res.response);
+                    });
+
+                });
+
+            }
         }
 
     }
@@ -396,7 +425,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'story/' + id,
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true
                     }).then((res) => {
                         resolve(res.data);
@@ -421,7 +450,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: `${this.endpoint}comments/${target}/${id}`,
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true
                     }).then((res) => {
                         resolve(res.data);
@@ -439,7 +468,7 @@ class dbnaAPI{
                     this.axios({
                         method: 'post',
                         url: `${this.endpoint}comments/${target}/${id}`,
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         data: this.qs.stringify({
                             body: text
                         }),
@@ -460,7 +489,7 @@ class dbnaAPI{
                     this.axios({
                         method: 'delete',
                         url: `${this.endpoint}${target}/${commentId}`,
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true
                     }).then((res) => {
                         resolve(res.data);
@@ -482,7 +511,7 @@ class dbnaAPI{
             this.axios({
                 method: 'post',
                 url: `${this.endpoint}heart/${target}/${id}`,
-                headers: { 'Cookie': this.tempData.sessionCookie },
+                jar: this.cookieJar,
                 withCredentials: true
             }).then((res) => {
                 resolve(res.data);
@@ -645,7 +674,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'notifications',
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true
                     }).then((res) => {
 
@@ -668,7 +697,7 @@ class dbnaAPI{
 
                     this.axios({
                         url: this.endpoint + 'notifications',
-                        headers: { 'Cookie': this.tempData.sessionCookie },
+                        jar: this.cookieJar,
                         withCredentials: true,
                         params: { before: this.tempData.lastNotificationDate }
                     }).then((res) => {
@@ -699,7 +728,7 @@ class dbnaAPI{
                 this.axios({
                     method: 'post',
                     url: this.endpoint + 'notifications/' + id,
-                    headers: { 'Cookie': this.tempData.sessionCookie },
+                    jar: this.cookieJar,
                     withCredentials: true,
                     data: this.qs.stringify({
                         read: 1
@@ -712,7 +741,7 @@ class dbnaAPI{
                 this.axios({
                     method: 'delete',
                     url: this.endpoint + 'notifications/' + id,
-                    headers: { 'Cookie': this.tempData.sessionCookie },
+                    jar: this.cookieJar,
                     withCredentials: true
                 });
 
