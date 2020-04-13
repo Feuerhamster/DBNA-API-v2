@@ -38,6 +38,8 @@ class dbnaAPI{
             sessionCookie: ""
         };
 
+        this.accountData = null;
+
         this.types = {
             crushes: {
                 HEART: 11,
@@ -78,6 +80,8 @@ class dbnaAPI{
             }).then((res) => {
 
                 this.tempData.sessionCookie = res.headers["set-cookie"].find(x => x.startsWith("cdsess"));
+                this.accountData = res.data;
+                this.eventEmitter.emit('ready', res.data);
                 resolve(res.data);
 
             }).catch((res) => {
