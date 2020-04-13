@@ -204,8 +204,6 @@ class dbnaAPI{
                         params: { page: this.tempData.contacts[userId], type: all ? 'all' : 'friends' }
                     }).then((res) => {
 
-                        this.tempData.contacts[userId] = 0;
-
                         resolve(res.data);
 
                     }).catch((res) => {
