@@ -34,6 +34,7 @@ class dbnaAPI{
         this.tempData = {
             pulse: {},
             contacts: {},
+            visitorsPage: 0,
             lastNotificationDate: "",
             sessionCookie: ""
         };
@@ -213,6 +214,25 @@ class dbnaAPI{
                 });
 
             },
+            remove: (contactId)=>{
+
+                return new Promise((resolve, reject)=>{
+
+                    this.axios({
+                        url: this.endpoint + 'contacts/favs/' + contactId,
+                        jar: this.cookieJar,
+                        withCredentials: true
+                    }).then((res) => {
+
+                        resolve(res.data);
+
+                    }).catch((res) => {
+                        reject(res.response);
+                    });
+
+                });
+
+            }
         }
 
     }
@@ -319,6 +339,56 @@ class dbnaAPI{
                             text: text
                         }),
                         withCredentials: true
+                    }).then((res) => {
+
+                        resolve(res.data);
+
+                    }).catch((res) => {
+                        reject(res.response);
+                    });
+
+                });
+
+            }
+        }
+
+    }
+
+    visitors(){
+
+        return {
+            getCurrent: ()=>{
+
+                return new Promise((resolve, reject)=>{
+
+                    this.axios({
+                        url: this.endpoint + 'user/visitors',
+                        jar: this.cookieJar,
+                        withCredentials: true
+                    }).then((res) => {
+
+                        this.tempData.visitorsPage = 0;
+
+                        resolve(res.data);
+
+                    }).catch((res) => {
+                        reject(res.response);
+                    });
+
+                });
+
+            },
+            getNextPage: ()=>{
+
+                return new Promise((resolve, reject)=>{
+
+                    this.tempData.visitorsPage++;
+
+                    this.axios({
+                        url: this.endpoint + 'user/visitors',
+                        jar: this.cookieJar,
+                        withCredentials: true,
+                        params: { page: this.tempData.visitorsPage }
                     }).then((res) => {
 
                         resolve(res.data);
