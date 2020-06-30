@@ -79,7 +79,7 @@ class dbnaAPI{
                 CUTE: 15,
                 SUPER: 99
             }
-        }
+        };
 
     }
 
@@ -116,7 +116,7 @@ class dbnaAPI{
 
     logout(){
 
-        return new Promise((resolve, reject)=> {
+        return new Promise((resolve, reject) => {
 
             this.axios({
                 url: this.endpoint + "user/logout"
@@ -646,7 +646,7 @@ class dbnaAPI{
 
                     if(this.chatClient.ws.readyState === 1){
 
-                        this.chatClient.send("message", { receiver: peer, message: message }, (data) => {
+                        this.chatClient.send("message", { receiver: peer, message }, (data) => {
                             resolve(data);
                         });
 
@@ -665,7 +665,7 @@ class dbnaAPI{
 
                     if(this.chatClient.ws.readyState === 1){
 
-                        this.chatClient.send("history", { peer: peer, limit: limit, thumb: thumb }, (data) => {
+                        this.chatClient.send("history", { peer, limit, thumb }, (data) => {
                             resolve(data);
                         });
 
@@ -680,9 +680,9 @@ class dbnaAPI{
             typing: (typing = true) => {
 
                 if(typing){
-                    this.chatClient.send("typing", { peer: peer });
+                    this.chatClient.send("typing", { peer });
                 }else {
-                    this.chatClient.send("nottyping", {peer: peer});
+                    this.chatClient.send("nottyping", { peer });
                 }
 
             }
@@ -695,16 +695,16 @@ class dbnaAPI{
 
         return {
             read: () => {
-                this.chatClient.send("read", { id: id });
+                this.chatClient.send("read", { id });
             },
             delete: () => {
-                this.chatClient.send("delete", { id: id });
+                this.chatClient.send("delete", { id });
             },
             archive: () => {
-                this.chatClient.send("archive", { id: id });
+                this.chatClient.send("archive", { id });
             },
             unarchive: () => {
-                this.chatClient.send("unarchive", { id: id });
+                this.chatClient.send("unarchive", { id });
             }
         }
 

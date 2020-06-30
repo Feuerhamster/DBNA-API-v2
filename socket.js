@@ -62,7 +62,7 @@ function socket(wsurl, options){
 
             }else if(msg.type === "error"){
 
-                if(typeof events["error"] == "function"){
+                if(typeof events["error"] === "function"){
                     events["error"](msg.data);
                 }
 
@@ -114,7 +114,7 @@ function socket(wsurl, options){
                 ackQueue[idCount] = ack;
             }
 
-            let newMessage = socketIOParser.stringifyMessage({ id : ack === false ? '' : idCount, event, data });
+            let newMessage = socketIOParser.stringifyMessage({ id : ack === false ? "" : idCount, event, data });
 
             idCount++;
 
