@@ -8,7 +8,9 @@
     "axios-cookiejar-support": "^0.5.1",
     "ws": "^7.2.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/ws": "^7.2.6"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

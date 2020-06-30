@@ -55,7 +55,7 @@ module.exports.parseMessage = function(msgString){
             packetType: packetTypes[result.groups.packetType] ? packetTypes[result.groups.packetType] : null,
             type: types[result.groups.type] ? types[result.groups.type] : null,
             id: result.groups.id ? result.groups.id : null,
-            event: result.groups.event != "null" ? result.groups.event : null,
+            event: result.groups.event !== "null" ? result.groups.event : null,
             data: JSON.parse(result.groups.data)
         };
 
@@ -80,13 +80,7 @@ module.exports.parseMessage = function(msgString){
 module.exports.stringifyMessage = function(msgObject){
 
     //check if the message object is valid
-    if(msgObject.event && msgObject.data){
-
-        //get a messageType object with keys as values and values as keys
-        const reversePacketTypeObject = Object.fromEntries(Object.entries(packetTypes).map(entry => entry.reverse()));
-
-        //get the right type for the message
-        let type = reversePacketTypeObject[msgObject.type] ? reversePacketTypeObject[msgObject.type] : "";
+    if(Number.isInteger(msgObject.id) && msgObject.event && msgObject.data){
 
         //build the message
         return `${ 4 }${ 2 }${ msgObject.id }["${ msgObject.event }",${ JSON.stringify(msgObject.data) }]`;

@@ -19,7 +19,7 @@ function socket(wsurl, options){
     ws = new WebSocket(wsurl, [], options);
 
     //listen for events
-    ws.on("open", ()=>{
+    ws.on("open", () => {
 
         if(events["open"]){
             events["open"]();
@@ -27,40 +27,40 @@ function socket(wsurl, options){
 
     });
 
-    ws.on("message", (msg)=>{
+    ws.on("message", (msg) => {
 
         //parse the incoming message
         //console.log(msg);
         msg = socketIOParser.parseMessage(msg);
         //console.log(msg);
-        if(msg.packetType == "open"){
+        if(msg.packetType === "open"){
 
             pingInterval = msg.data.pingInterval;
             // set reconnections to 0 on successful connection
             reconnections = 0;
 
-            setTimeout(()=>{
-                if(ws.readyState == 1){
+            setTimeout(() => {
+                if(ws.readyState === 1){
                     ws.send("2");
                 }
             }, pingInterval);
 
         }else if(msg.packetType === "pong"){
 
-            setTimeout(()=>{
+            setTimeout(() => {
                 if(ws.readyState === 1) {
                     ws.send("2");
                 }
             }, pingInterval);
 
-        }else if(msg.packetType == "message"){
+        }else if(msg.packetType === "message"){
 
-            if(msg.type == "acknowledgement" && ackQueue[msg.id.toString()]){
+            if(msg.type === "acknowledgement" && ackQueue[msg.id.toString()]){
 
                 ackQueue[msg.id.toString()](msg.data);
                 delete ackQueue[msg.id.toString()];
 
-            }else if(msg.type == "error"){
+            }else if(msg.type === "error"){
 
                 if(typeof events["error"] == "function"){
                     events["error"](msg.data);
@@ -77,25 +77,25 @@ function socket(wsurl, options){
         }
     });
     // run error event on websocket error
-    ws.on("error", (err)=>{
-        if(typeof events["error"] == "function"){
+    ws.on("error", (err) => {
+        if(typeof events["error"] === "function"){
             events["error"](err);
         }else{
             throw err;
         }
     });
 
-    ws.on("close", ()=>{
+    ws.on("close", () => {
         // run close event
-        if(typeof events["closed"] == "function"){
+        if(typeof events["closed"] === "function"){
             events["closed"]();
         }
 
         // reconnect
-        setTimeout(()=>{
+        setTimeout(() => {
             if(reconnections <= reconnectAttemps){
                 // run reconnect event
-                if(typeof events["reconnect"] == "function"){
+                if(typeof events["reconnect"] === "function"){
                     events["reconnect"](reconnections);
                 }
                 reconnections++;
@@ -106,22 +106,22 @@ function socket(wsurl, options){
     });
 
     return {
-        on: (event, func)=>{
+        on: (event, func) => {
             events[event] = func;
         },
-        send: (event, data = {}, ack = false)=>{
-            if(typeof(ack) == "function"){
+        send: (event, data = {}, ack = false) => {
+            if(typeof(ack) === "function"){
                 ackQueue[idCount] = ack;
             }
 
-            let newMessage = socketIOParser.stringifyMessage({ id : ack === false ? '' : idCount, event: event, data: data });
+            let newMessage = socketIOParser.stringifyMessage({ id : ack === false ? '' : idCount, event, data });
 
             idCount++;
 
             ws.send(newMessage);
         },
-        ws: ws
-    }
+        ws
+    };
 
 }
 

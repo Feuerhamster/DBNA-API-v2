@@ -11,23 +11,46 @@ class dbnaAPI{
 
     constructor() {
 
-        this.socket = require('./socket.js');
-        this.axios = require('axios');
-        this.qs = require('querystring');
+        this.socket = require("./socket.js");
+        this.axios = require("axios");
+        this.qs = require("querystring");
 
-        const axiosCookieJarSupport = require('axios-cookiejar-support');
-        const tough = require('tough-cookie');
+        const axiosCookieJarSupport = require("axios-cookiejar-support");
+        const tough = require("tough-cookie");
 
         axiosCookieJarSupport.default(this.axios);
         this.cookieJar = new tough.CookieJar();
 
-        const events = require('events');
+        const events = require("events");
         this.eventEmitter = new events.EventEmitter();
 
         this.chatClient = null;
 
         this.endpoint = "https://www.dbna.com/json/";
         this.wsEndpoint = "wss://www.dbna.com/chat-server/socket.io/?EIO=3&transport=websocket";
+
+        // Axios config
+        this.axios.defaults.jar = this.cookieJar;
+        this.axios.defaults.withCredentials = true;
+        this.axios.defaults.headers["user-agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36";
+
+        // Request interceptor for removing cookie
+        this.axios.interceptors.request.use((config) => {
+
+            this.cookieJar.store.findCookie("www.dbna.com", "/", "cdsess", (err, cookie) => {
+                if(!err && cookie){
+                    // Remove cookie if the last access is older than 20 minutes
+                    if((new Date) - cookie.lastAccessed > (1000 * 60 * 20)){
+                        this.cookieJar.store.removeCookie("www.dbna.com", "/", "cdsess", (err) => {});
+                    }
+                }
+            });
+
+            return config;
+
+        }, (error) => {
+            return Promise.reject(error);
+        });
 
         // temporary data that is required in runtime
         // Mostly used for pagination
@@ -66,23 +89,21 @@ class dbnaAPI{
 
     login(username, password, auto = 0){
 
-        return new Promise((resolve, reject)=>{
+        return new Promise((resolve, reject) => {
 
             this.axios({
-                method: 'post',
-                url: this.endpoint + 'user/login',
+                method: "post",
+                url: this.endpoint + "user/login",
                 data: this.qs.stringify({
-                    username: username,
-                    password: password,
-                    auto: auto
-                }),
-                withCredentials: true,
-                jar: this.cookieJar
+                    username,
+                    password,
+                    auto
+                })
             }).then((res) => {
 
-                this.tempData.sessionCookie = res.headers["set-cookie"].find(x => x.startsWith("cdsess"));
+                this.tempData.sessionCookie = res.headers["set-cookie"].find((x) => x.startsWith("cdsess"));
                 this.accountData = res.data;
-                this.eventEmitter.emit('ready', res.data);
+                this.eventEmitter.emit("ready", res.data);
                 resolve(res.data);
 
             }).catch((res) => {
@@ -98,9 +119,7 @@ class dbnaAPI{
         return new Promise((resolve, reject)=> {
 
             this.axios({
-                url: this.endpoint + 'user/logout',
-                jar: this.cookieJar,
-                withCredentials: true
+                url: this.endpoint + "user/logout"
             }).then((res) => {
 
                 resolve(res.data);
@@ -120,14 +139,12 @@ class dbnaAPI{
     user(id){
 
         return {
-            getProfile: ()=>{
+            getProfile: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'profile/' + id,
-                        jar: this.cookieJar,
-                        withCredentials: true,
+                        url: this.endpoint + "profile/" + id,
                         params: { gallery: 1 }
                     }).then((res) => {
                         resolve(res.data);
@@ -145,20 +162,16 @@ class dbnaAPI{
             sendCrush: (crush) => {
 
                 this.axios({
-                    method: 'put',
-                    url: this.endpoint + 'profile/' + id + '/crush/' + crush,
-                    jar: this.cookieJar,
-                    withCredentials: true
+                    method: "put",
+                    url: this.endpoint + "profile/" + id + "/crush/" + crush
                 });
 
             },
             revokeCrush: () => {
 
                 this.axios({
-                    method: 'delete',
-                    url: this.endpoint + 'profile/' + id + '/crush',
-                    jar: this.cookieJar,
-                    withCredentials: true
+                    method: "delete",
+                    url: this.endpoint + "profile/" + id + "/crush"
                 });
 
             },
@@ -170,15 +183,13 @@ class dbnaAPI{
     contacts(userId, all = false){
 
         return {
-            getCurrent: ()=>{
+            getCurrent: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'profile/' + userId + '/friends',
-                        jar: this.cookieJar,
-                        withCredentials: true,
-                        params: { type: all ? 'all' : 'friends' }
+                        url: this.endpoint + "profile/" + userId + "/friends",
+                        params: { type: all ? "all" : "friends" }
                     }).then((res) => {
 
                         this.tempData.contacts[userId] = 0;
@@ -192,17 +203,15 @@ class dbnaAPI{
                 });
 
             },
-            getNextPage: ()=>{
+            getNextPage: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.tempData.contacts[userId]++;
 
                     this.axios({
-                        url: this.endpoint + 'profile/' + userId + '/friends',
-                        jar: this.cookieJar,
-                        withCredentials: true,
-                        params: { page: this.tempData.contacts[userId], type: all ? 'all' : 'friends' }
+                        url: this.endpoint + "profile/" + userId + "/friends",
+                        params: { page: this.tempData.contacts[userId], type: all ? "all" : "friends" }
                     }).then((res) => {
 
                         resolve(res.data);
@@ -214,14 +223,12 @@ class dbnaAPI{
                 });
 
             },
-            remove: (contactId)=>{
+            remove: (contactId) => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'contacts/favs/' + contactId,
-                        jar: this.cookieJar,
-                        withCredentials: true
+                        url: this.endpoint + "contacts/favs/" + contactId
                     }).then((res) => {
 
                         resolve(res.data);
@@ -241,14 +248,12 @@ class dbnaAPI{
 
         return {
 
-            getGalleries: ()=>{
+            getGalleries: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'profile/' + userId + '/picture',
-                        jar: this.cookieJar,
-                        withCredentials: true,
+                        url: this.endpoint + "profile/" + userId + "/picture",
                         params: { galleries: 1 }
                     }).then((res) => {
                         resolve(res.data);
@@ -259,14 +264,12 @@ class dbnaAPI{
                 });
 
             },
-            getGallery: (galleryId)=>{
+            getGallery: (galleryId) => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'profile/' + userId + '/gallery/' + galleryId,
-                        jar: this.cookieJar,
-                        withCredentials: true
+                        url: this.endpoint + "profile/" + userId + "/gallery/" + galleryId
                     }).then((res) => {
                         resolve(res.data);
                     }).catch((res) => {
@@ -284,14 +287,12 @@ class dbnaAPI{
     picture(id){
 
         return {
-            getPicture: ()=>{
+            getPicture: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'profile/picture/' + id,
-                        jar: this.cookieJar,
-                        withCredentials: true
+                        url: this.endpoint + "profile/picture/" + id
                     }).then((res) => {
                         resolve(res.data);
                     }).catch((res) => {
@@ -301,7 +302,7 @@ class dbnaAPI{
                 });
 
             },
-            heart: ()=> this.heart("picture", id),
+            heart: () => this.heart("picture", id),
             comments: (commentId = null) => this.comments("picture", id, commentId)
         }
 
@@ -310,14 +311,12 @@ class dbnaAPI{
     texts(userId = null){
 
         return {
-            getTexts: ()=>{
+            getTexts: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'profile/' + userId + '/text',
-                        jar: this.cookieJar,
-                        withCredentials: true
+                        url: this.endpoint + "profile/" + userId + "/text"
                     }).then((res) => {
                         resolve(res.data);
                     }).catch((res) => {
@@ -327,18 +326,16 @@ class dbnaAPI{
                 });
 
             },
-            update: (type, text)=>{
+            update: (type, text) => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        method: 'post',
-                        url: this.endpoint + 'manage/text/' + type,
-                        jar: this.cookieJar,
+                        method: "post",
+                        url: this.endpoint + "manage/text/" + type,
                         data: this.qs.stringify({
-                            text: text
-                        }),
-                        withCredentials: true
+                            text
+                        })
                     }).then((res) => {
 
                         resolve(res.data);
@@ -357,14 +354,12 @@ class dbnaAPI{
     visitors(){
 
         return {
-            getCurrent: ()=>{
+            getCurrent: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'user/visitors',
-                        jar: this.cookieJar,
-                        withCredentials: true
+                        url: this.endpoint + "user/visitors"
                     }).then((res) => {
 
                         this.tempData.visitorsPage = 0;
@@ -378,16 +373,14 @@ class dbnaAPI{
                 });
 
             },
-            getNextPage: ()=>{
+            getNextPage: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.tempData.visitorsPage++;
 
                     this.axios({
-                        url: this.endpoint + 'user/visitors',
-                        jar: this.cookieJar,
-                        withCredentials: true,
+                        url: this.endpoint + "user/visitors",
                         params: { page: this.tempData.visitorsPage }
                     }).then((res) => {
 
@@ -411,14 +404,13 @@ class dbnaAPI{
     pulse(id = "all"){
 
         return {
-            getCurrent: ()=>{
+            getCurrent: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'pulse/' + id,
-                        jar: this.cookieJar,
-                        withCredentials: true
+                        url: this.endpoint + "pulse/" + id
+
                     }).then((res) => {
 
                         this.tempData.pulse[id] = {
@@ -435,16 +427,14 @@ class dbnaAPI{
                 });
 
             },
-            getNextPage: ()=>{
+            getNextPage: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.tempData.pulse[id].lastPage ++;
 
                     this.axios({
-                        url: this.endpoint + 'pulse/' + id,
-                        jar: this.cookieJar,
-                        withCredentials: true,
+                        url: this.endpoint + "pulse/" + id,
                         params: { before: this.tempData.pulse[id].lastEntryDate, ph: this.tempData.pulse[id].lastPage }
                     }).then((res) => {
 
@@ -462,19 +452,17 @@ class dbnaAPI{
                 });
 
             },
-            post: (text, asGroup = '')=>{
+            post: (text, asGroup = "") => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        method: 'post',
+                        method: "post",
                         url: `${this.endpoint}pulse/${id}`,
-                        jar: this.cookieJar,
                         data: this.qs.stringify({
                             body: text,
-                            asGroup: asGroup
-                        }),
-                        withCredentials: true
+                            asGroup
+                        })
                     }).then((res) => {
                         resolve(res.data);
                     }).catch((res) => {
@@ -491,14 +479,12 @@ class dbnaAPI{
     story(id){
 
         return {
-            getStory: ()=>{
+            getStory: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'story/' + id,
-                        jar: this.cookieJar,
-                        withCredentials: true
+                        url: this.endpoint + "story/" + id
                     }).then((res) => {
                         resolve(res.data);
                     }).catch((res) => {
@@ -516,14 +502,12 @@ class dbnaAPI{
 
     comments(target, id, commentId = null){
         return{
-            get: ()=>{
+            get: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: `${this.endpoint}comments/${target}/${id}`,
-                        jar: this.cookieJar,
-                        withCredentials: true
+                        url: `${this.endpoint}comments/${target}/${id}`
                     }).then((res) => {
                         resolve(res.data);
                     }).catch((res) => {
@@ -533,18 +517,16 @@ class dbnaAPI{
                 });
                 
             },
-            post: (text)=>{
+            post: (text) => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        method: 'post',
+                        method: "post",
                         url: `${this.endpoint}comments/${target}/${id}`,
-                        jar: this.cookieJar,
                         data: this.qs.stringify({
                             body: text
-                        }),
-                        withCredentials: true
+                        })
                     }).then((res) => {
                         resolve(res.data);
                     }).catch((res) => {
@@ -554,15 +536,13 @@ class dbnaAPI{
                 });
 
             },
-            delete: (commentId)=>{
+            delete: (commentId) => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        method: 'delete',
-                        url: `${this.endpoint}${target}/${commentId}`,
-                        jar: this.cookieJar,
-                        withCredentials: true
+                        method: "delete",
+                        url: `${this.endpoint}${target}/${commentId}`
                     }).then((res) => {
                         resolve(res.data);
                     }).catch((res) => {
@@ -572,19 +552,17 @@ class dbnaAPI{
                 });
 
             },
-            heart: ()=> this.heart(target, commentId)
+            heart: () => this.heart(target, commentId)
         }
     }
 
     heart(target, id){
 
-        return new Promise((resolve, reject)=>{
+        return new Promise((resolve, reject) => {
 
             this.axios({
-                method: 'post',
-                url: `${this.endpoint}heart/${target}/${id}`,
-                jar: this.cookieJar,
-                withCredentials: true
+                method: "post",
+                url: `${this.endpoint}heart/${target}/${id}`
             }).then((res) => {
                 resolve(res.data);
             }).catch((res) => {
@@ -603,24 +581,24 @@ class dbnaAPI{
 
         this.chatClient = this.socket(this.wsEndpoint, { headers: { "Cookie": this.tempData.sessionCookie } });
 
-        this.chatClient.on('open', () => {
-            this.eventEmitter.emit('connected');
+        this.chatClient.on("open", () => {
+            this.eventEmitter.emit("connected");
         });
 
-        this.chatClient.on('error', (error) => {
-            this.eventEmitter.emit('error', error);
+        this.chatClient.on("error", (error) => {
+            this.eventEmitter.emit("error", error);
         });
 
-        this.chatClient.on('closed', () => {
-            this.eventEmitter.emit('closed');
+        this.chatClient.on("closed", () => {
+            this.eventEmitter.emit("closed");
         });
 
-        this.chatClient.on('reconnect', (attemps) => {
-            this.eventEmitter.emit('reconnect', attemps);
+        this.chatClient.on("reconnect", (attemps) => {
+            this.eventEmitter.emit("reconnect", attemps);
         });
 
         //triggers when the user gets a chat message
-        this.chatClient.on('message', (msg)=>{
+        this.chatClient.on("message", (msg) => {
 
             let messageObject = {
                 message: msg,
@@ -628,13 +606,13 @@ class dbnaAPI{
                 chat: this.chat(msg.sender)
             };
 
-            this.eventEmitter.emit('message', messageObject);
+            this.eventEmitter.emit("message", messageObject);
 
         });
 
-        this.chatClient.on('notify', (notification) => {
+        this.chatClient.on("notify", (notification) => {
 
-            this.eventEmitter.emit('notify', notification);
+            this.eventEmitter.emit("notify", notification);
 
         });
 
@@ -642,16 +620,16 @@ class dbnaAPI{
 
     chats(){
 
-        return new Promise((resolve, reject)=>{
+        return new Promise((resolve, reject) => {
 
             if(this.chatClient.ws.readyState === 1){
 
-                this.chatClient.send('peers', {}, (data)=>{
+                this.chatClient.send("peers", {}, (data) => {
                     resolve(data);
                 });
 
             }else{
-                reject({ error: 'no_connection' });
+                reject({ error: "no_connection" });
             }
 
         });
@@ -662,18 +640,18 @@ class dbnaAPI{
 
         return {
 
-            send: (message)=>{
+            send: (message) => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     if(this.chatClient.ws.readyState === 1){
 
-                        this.chatClient.send('message', { receiver: peer, message: message }, (data)=>{
+                        this.chatClient.send("message", { receiver: peer, message: message }, (data) => {
                             resolve(data);
                         });
 
                     }else{
-                        reject({ error: 'no_connection' });
+                        reject({ error: "no_connection" });
                     }
 
 
@@ -681,30 +659,30 @@ class dbnaAPI{
 
             },
 
-            get: (limit = 30, thumb = false)=>{
+            get: (limit = 30, thumb = false) => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     if(this.chatClient.ws.readyState === 1){
 
-                        this.chatClient.send('history', { peer: peer, limit: limit, thumb: thumb }, (data)=>{
+                        this.chatClient.send("history", { peer: peer, limit: limit, thumb: thumb }, (data) => {
                             resolve(data);
                         });
 
                     }else{
-                        reject({ error: 'no_connection' });
+                        reject({ error: "no_connection" });
                     }
 
                 });
 
             },
 
-            typing: (typing = true)=>{
+            typing: (typing = true) => {
 
                 if(typing){
-                    this.chatClient.send('typing', { peer: peer });
+                    this.chatClient.send("typing", { peer: peer });
                 }else {
-                    this.chatClient.send('nottyping', {peer: peer});
+                    this.chatClient.send("nottyping", {peer: peer});
                 }
 
             }
@@ -716,17 +694,17 @@ class dbnaAPI{
     messageActions(id){
 
         return {
-            read: ()=>{
-                this.chatClient.send('read', { id: id });
+            read: () => {
+                this.chatClient.send("read", { id: id });
             },
-            delete: ()=>{
-                this.chatClient.send('delete', { id: id });
+            delete: () => {
+                this.chatClient.send("delete", { id: id });
             },
-            archive: ()=>{
-                this.chatClient.send('archive', { id: id });
+            archive: () => {
+                this.chatClient.send("archive", { id: id });
             },
-            unarchive: ()=>{
-                this.chatClient.send('unarchive', { id: id });
+            unarchive: () => {
+                this.chatClient.send("unarchive", { id: id });
             }
         }
 
@@ -740,14 +718,12 @@ class dbnaAPI{
 
         return {
 
-            getCurrent: ()=>{
+            getCurrent: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'notifications',
-                        jar: this.cookieJar,
-                        withCredentials: true
+                        url: this.endpoint + "notifications"
                     }).then((res) => {
 
                         if(res.data.notifications.length > 0){
@@ -763,14 +739,12 @@ class dbnaAPI{
                 });
 
             },
-            getNextPage: ()=>{
+            getNextPage: () => {
 
-                return new Promise((resolve, reject)=>{
+                return new Promise((resolve, reject) => {
 
                     this.axios({
-                        url: this.endpoint + 'notifications',
-                        jar: this.cookieJar,
-                        withCredentials: true,
+                        url: this.endpoint + "notifications",
                         params: { before: this.tempData.lastNotificationDate }
                     }).then((res) => {
 
@@ -798,10 +772,8 @@ class dbnaAPI{
             read: () => {
 
                 this.axios({
-                    method: 'post',
-                    url: this.endpoint + 'notifications/' + id,
-                    jar: this.cookieJar,
-                    withCredentials: true,
+                    method: "post",
+                    url: this.endpoint + "notifications/" + id,
                     data: this.qs.stringify({
                         read: 1
                     })
@@ -811,10 +783,8 @@ class dbnaAPI{
             delete: () => {
 
                 this.axios({
-                    method: 'delete',
-                    url: this.endpoint + 'notifications/' + id,
-                    jar: this.cookieJar,
-                    withCredentials: true
+                    method: "delete",
+                    url: this.endpoint + "notifications/" + id
                 });
 
             }
